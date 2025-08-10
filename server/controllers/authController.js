@@ -76,69 +76,143 @@ export const signup = async (req, res) => {
   }
 };
 
+// export const verifyOtp = async (req, res) => {
+//   try {
+//     let { phone, otp, name, password } = req.body;
+
+//     // Validate input
+//     if (!phone || !otp || !name || !password) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Phone, OTP, name, and password are required'
+//       });
+//     }
+
+//     // Normalize phone number
+//     phone = normalizePhoneNumber(phone);
+
+//     // Validate password length
+//     if (password.length < 6) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Password must be at least 6 characters long'
+//       });
+//     }
+
+//     // Get signup data from cache
+//     const signupData = cache.get(`signup_${phone}`);
+//     if (!signupData) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Signup session expired. Please start again.'
+//       });
+//     }
+
+//     // Find and verify OTP
+//     const otpDoc = await OTP.findOne({
+//       phone,
+//       isUsed: false,
+//       expiresAt: { $gt: new Date() }
+//     }).sort({ createdAt: -1 });
+
+//     if (!otpDoc) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'OTP expired or not found'
+//       });
+//     }
+
+//     // Verify OTP
+//     try {
+//       otpDoc.verify(otp);
+//       await otpDoc.save();
+//     } catch (otpError) {
+//       return res.status(400).json({
+//         success: false,
+//         message: otpError.message
+//       });
+//     }
+
+//     // Create new user
+//     const user = new User({
+//       name: name.trim(),
+//       phone,
+//       password,
+//       isVerified: true
+//     });
+
+//     await user.save();
+
+//     // Generate JWT token
+//     const token = generateToken(user._id);
+
+//     // Clear cache
+//     cache.del(`signup_${phone}`);
+
+//     // Cache user data
+//     cache.set(cacheUtils.userKey(user._id), user, 300);
+
+//     res.status(201).json({
+//       success: true,
+//       message: 'Account created successfully',
+//       data: {
+//         user: {
+//           _id: user._id,
+//           name: user.name,
+//           phone: user.phone,
+//           balance: user.balance,
+//           isVerified: user.isVerified
+//         },
+//         token
+//       }
+//     });
+
+//   } catch (error) {
+//     console.error('OTP verification error:', error);
+//     res.status(500).json({
+//       success: false,
+//       message: 'Failed to verify OTP and create account'
+//     });
+//   }
+// };
+
 export const verifyOtp = async (req, res) => {
   try {
     let { phone, otp, name, password } = req.body;
 
-    // Validate input
     if (!phone || !otp || !name || !password) {
       return res.status(400).json({
         success: false,
-        message: 'Phone, OTP, name, and password are required'
+        message: 'Phone, OTP, name, and password are required',
       });
     }
 
-    // Normalize phone number
     phone = normalizePhoneNumber(phone);
 
-    // Validate password length
     if (password.length < 6) {
       return res.status(400).json({
         success: false,
-        message: 'Password must be at least 6 characters long'
+        message: 'Password must be at least 6 characters long',
       });
     }
 
-    // Get signup data from cache
-    const signupData = cache.get(`signup_${phone}`);
-    if (!signupData) {
+    // SKIP OTP validation entirely
+
+    // Check if user already exists (optional)
+    const existingUser = await User.findOne({ phone });
+    if (existingUser) {
       return res.status(400).json({
         success: false,
-        message: 'Signup session expired. Please start again.'
+        message: 'User with this phone number already exists',
       });
     }
 
-    // Find and verify OTP
-    const otpDoc = await OTP.findOne({
-      phone,
-      isUsed: false,
-      expiresAt: { $gt: new Date() }
-    }).sort({ createdAt: -1 });
-
-    if (!otpDoc) {
-      return res.status(400).json({
-        success: false,
-        message: 'OTP expired or not found'
-      });
-    }
-
-    // Verify OTP
-    try {
-      otpDoc.verify(otp);
-      await otpDoc.save();
-    } catch (otpError) {
-      return res.status(400).json({
-        success: false,
-        message: otpError.message
-      });
-    }
-
-    // Create new user
+    // Create the user real in DB
     const user = new User({
       name: name.trim(),
       phone,
       password,
-      isVerified: true
+      isVerified: true,
     });
 
     await user.save();
@@ -146,7 +220,7 @@ export const verifyOtp = async (req, res) => {
     // Generate JWT token
     const token = generateToken(user._id);
 
-    // Clear cache
+    // Clear OTP cache if you use any
     cache.del(`signup_${phone}`);
 
     // Cache user data
@@ -161,20 +235,20 @@ export const verifyOtp = async (req, res) => {
           name: user.name,
           phone: user.phone,
           balance: user.balance,
-          isVerified: user.isVerified
+          isVerified: user.isVerified,
         },
-        token
-      }
+        token,
+      },
     });
-
   } catch (error) {
     console.error('OTP verification error:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to verify OTP and create account'
+      message: 'Failed to verify OTP and create account',
     });
   }
 };
+
 
 export const sendOtp = async (req, res) => {
   try {
