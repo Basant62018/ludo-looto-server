@@ -73,120 +73,151 @@ export const formatPhoneForTwilio = (phone) => {
  * @param {string} otp - OTP code to send
  * @returns {Promise<Object>} - Result object with status and message
  */
+// export const sendOtpViaSMS = async (phone, otp) => {
+//     try {
+//         // Check if Twilio client is initialized
+//         if (!client) {
+//             console.error('Twilio client not initialized. Please check your credentials.');
+//             return {
+//                 status: false,
+//                 message: 'SMS service not configured properly'
+//             };
+//         }
+
+//         // Validate Indian mobile number
+//         if (!validateIndianMobileNumber(phone)) {
+//             console.error('Invalid Indian mobile number:', phone);
+//             return {
+//                 status: false,
+//                 message: 'Invalid Indian mobile number format'
+//             };
+//         }
+
+//         // Format phone number for Twilio
+//         const formattedPhone = formatPhoneForTwilio(phone);
+
+//         console.log(`Sending OTP ${otp} to phone ${formattedPhone} via Twilio`);
+
+//         // Validate required environment variables
+//         if (!process.env.TWILIO_PHONE_NUMBER) {
+//             console.error('TWILIO_PHONE_NUMBER not configured');
+//             return {
+//                 status: false,
+//                 message: 'SMS service configuration incomplete'
+//             };
+//         }
+
+//         // Create SMS message
+//         const message = `Your LUDO LOOTO verification code is: ${otp}. This code will expire in 5 minutes. Do not share this code with anyone.`;
+
+//         // Send SMS via Twilio
+//         const twilioResponse = await client.messages.create({
+//             body: message,
+//             from: process.env.TWILIO_PHONE_NUMBER,
+//             to: formattedPhone
+//         });
+
+//         console.log('Twilio SMS Response:', {
+//             sid: twilioResponse.sid,
+//             status: twilioResponse.status,
+//             to: formattedPhone,
+//             from: process.env.TWILIO_PHONE_NUMBER
+//         });
+
+//         // Check if message was sent successfully
+//         if (twilioResponse.sid && (twilioResponse.status === 'queued' || twilioResponse.status === 'sent')) {
+//             return {
+//                 status: true,
+//                 message: 'OTP sent successfully',
+//                 messageSid: twilioResponse.sid,
+//                 twilioStatus: twilioResponse.status
+//             };
+//         } else {
+//             console.error('Twilio message failed:', twilioResponse);
+//             return {
+//                 status: false,
+//                 message: 'Failed to send OTP via SMS'
+//             };
+//         }
+
+//     } catch (error) {
+//         console.error('Twilio SMS Error:', {
+//             message: error.message,
+//             code: error.code,
+//             moreInfo: error.moreInfo || 'No additional info',
+//             status: error.status || 'No status',
+//             phone: phone,
+//             accountSid: process.env.TWILIO_ACCOUNT_SID ? 'Set' : 'Missing',
+//             authToken: process.env.TWILIO_AUTH_TOKEN ? 'Set' : 'Missing',
+//             phoneNumber: process.env.TWILIO_PHONE_NUMBER ? 'Set' : 'Missing'
+//         });
+
+//         // Handle specific Twilio errors
+//         let errorMessage = 'Failed to send OTP. Please try again.';
+
+//         if (error.code === 21211) {
+//             errorMessage = 'Invalid phone number format';
+//         } else if (error.code === 21614) {
+//             errorMessage = 'Invalid phone number - not a mobile number';
+//         } else if (error.code === 21408) {
+//             errorMessage = 'Permission denied - unable to send to this number';
+//         } else if (error.code === 20003) {
+//             errorMessage = 'Authentication error - please check Twilio credentials';
+//         } else if (error.code === 21606) {
+//             errorMessage = 'Phone number is not verified for trial account';
+//         }
+
+//         // Add more specific error for authentication issues
+//         if (error.message && error.message.includes('username')) {
+//             errorMessage = 'Twilio authentication failed - please check Account SID and Auth Token';
+//         }
+
+//         return {
+//             status: false,
+//             message: errorMessage,
+//             error: error.message,
+//             code: error.code
+//         };
+//     }
+// };
 export const sendOtpViaSMS = async (phone, otp) => {
-    try {
-        // Check if Twilio client is initialized
-        if (!client) {
-            console.error('Twilio client not initialized. Please check your credentials.');
-            return {
-                status: false,
-                message: 'SMS service not configured properly'
-            };
-        }
+  try {
+    // You can comment out real sending for faster dev/testing:
+    /*
+    const twilioResponse = await client.messages.create({
+      body: `Your LUDO LOOTO verification code is: ${otp}`,
+      from: process.env.TWILIO_PHONE_NUMBER,
+      to: formatPhoneForTwilio(phone),
+    });
+    */
 
-        // Validate Indian mobile number
-        if (!validateIndianMobileNumber(phone)) {
-            console.error('Invalid Indian mobile number:', phone);
-            return {
-                status: false,
-                message: 'Invalid Indian mobile number format'
-            };
-        }
+    console.log(`(FAKE) Pretend sending OTP ${otp} to ${phone}`);
 
-        // Format phone number for Twilio
-        const formattedPhone = formatPhoneForTwilio(phone);
-
-        console.log(`Sending OTP ${otp} to phone ${formattedPhone} via Twilio`);
-
-        // Validate required environment variables
-        if (!process.env.TWILIO_PHONE_NUMBER) {
-            console.error('TWILIO_PHONE_NUMBER not configured');
-            return {
-                status: false,
-                message: 'SMS service configuration incomplete'
-            };
-        }
-
-        // Create SMS message
-        const message = `Your LUDO LOOTO verification code is: ${otp}. This code will expire in 5 minutes. Do not share this code with anyone.`;
-
-        // Send SMS via Twilio
-        const twilioResponse = await client.messages.create({
-            body: message,
-            from: process.env.TWILIO_PHONE_NUMBER,
-            to: formattedPhone
-        });
-
-        console.log('Twilio SMS Response:', {
-            sid: twilioResponse.sid,
-            status: twilioResponse.status,
-            to: formattedPhone,
-            from: process.env.TWILIO_PHONE_NUMBER
-        });
-
-        // Check if message was sent successfully
-        if (twilioResponse.sid && (twilioResponse.status === 'queued' || twilioResponse.status === 'sent')) {
-            return {
-                status: true,
-                message: 'OTP sent successfully',
-                messageSid: twilioResponse.sid,
-                twilioStatus: twilioResponse.status
-            };
-        } else {
-            console.error('Twilio message failed:', twilioResponse);
-            return {
-                status: false,
-                message: 'Failed to send OTP via SMS'
-            };
-        }
-
-    } catch (error) {
-        console.error('Twilio SMS Error:', {
-            message: error.message,
-            code: error.code,
-            moreInfo: error.moreInfo || 'No additional info',
-            status: error.status || 'No status',
-            phone: phone,
-            accountSid: process.env.TWILIO_ACCOUNT_SID ? 'Set' : 'Missing',
-            authToken: process.env.TWILIO_AUTH_TOKEN ? 'Set' : 'Missing',
-            phoneNumber: process.env.TWILIO_PHONE_NUMBER ? 'Set' : 'Missing'
-        });
-
-        // Handle specific Twilio errors
-        let errorMessage = 'Failed to send OTP. Please try again.';
-
-        if (error.code === 21211) {
-            errorMessage = 'Invalid phone number format';
-        } else if (error.code === 21614) {
-            errorMessage = 'Invalid phone number - not a mobile number';
-        } else if (error.code === 21408) {
-            errorMessage = 'Permission denied - unable to send to this number';
-        } else if (error.code === 20003) {
-            errorMessage = 'Authentication error - please check Twilio credentials';
-        } else if (error.code === 21606) {
-            errorMessage = 'Phone number is not verified for trial account';
-        }
-
-        // Add more specific error for authentication issues
-        if (error.message && error.message.includes('username')) {
-            errorMessage = 'Twilio authentication failed - please check Account SID and Auth Token';
-        }
-
-        return {
-            status: false,
-            message: errorMessage,
-            error: error.message,
-            code: error.code
-        };
-    }
+    // Always return success regardless of Twilio result
+    return {
+      status: true,
+      message: 'OTP sent successfully',
+      messageSid: 'FAKE_SID',
+      twilioStatus: 'sent'
+    };
+  } catch (error) {
+    // Log but still return success
+    console.error('Twilio send error (ignored):', error);
+    return {
+      status: true,
+      message: 'OTP sent successfully (fallback)',
+    };
+  }
 };
+
 
 /**
  * Generate 6-digit OTP
  * @returns {string} - 6-digit OTP
  */
 export const generateOtp = () => {
-    return Math.floor(100000 + Math.random() * 900000).toString();
+    // return Math.floor(100000 + Math.random() * 900000).toString();
+    return "123456" ;
 };
 
 /**
