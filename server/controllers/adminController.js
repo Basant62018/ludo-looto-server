@@ -815,7 +815,7 @@ export const declareCorrectWinner = async (req, res) => {
 
         // Create winning transaction
         const totalAmount = room.amount * room.players.length;
-        const platformFeePercent = parseInt(process.env.PLATFORM_FEE_PERCENTAGE) || 10;
+        const platformFeePercent = parseInt(process.env.PLATFORM_FEE_PERCENTAGE) || 5;
         const platformFee = Math.floor(totalAmount * platformFeePercent / 100);
         const winnerAmount = totalAmount - platformFee;
 
@@ -1566,4 +1566,5 @@ export const rejectWinnerRequest = async (req, res) => {
             message: error.message || 'Failed to reject winner request'
         });
     }
+
 };
