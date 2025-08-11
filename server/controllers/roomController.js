@@ -73,7 +73,7 @@ export const getRooms = async (req, res) => {
 export const createRoom = async (req, res) => {
   try {
     const userId = req.user._id;
-    const { gameType = 'Ludo', amount, maxPlayers = 4, roomId } = req.body;
+    const { gameType = 'Ludo', amount, maxPlayers = 2, roomId } = req.body;
 
     // Validate input
     if (!amount || amount <= 0) {
