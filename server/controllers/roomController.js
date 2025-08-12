@@ -69,13 +69,15 @@ export const getRooms = async (req, res) => {
     });
   }
 };
-
 export const createRoom = async (req, res) => {
   try {
     const userId = req.user._id;
-    const { gameType = 'Ludo', amount, maxPlayers = 2, roomId } = req.body;
+    const { gameType = 'Ludo', amount, roomId } = req.body;
 
-    // Validate input
+    // Always force maxPlayers to 2
+    const maxPlayers = 2;
+
+    // Validate amount
     if (!amount || amount <= 0) {
       return res.status(400).json({
         success: false,
@@ -101,13 +103,6 @@ export const createRoom = async (req, res) => {
       }
     }
 
-    if (maxPlayers < 2 || maxPlayers > 4) {
-      return res.status(400).json({
-        success: false,
-        message: 'Players must be between 2 and 4'
-      });
-    }
-
     // Check user balance
     const user = await User.findById(userId);
     if (!user) {
@@ -124,7 +119,7 @@ export const createRoom = async (req, res) => {
       });
     }
 
-    // Use provided room ID or generate unique room ID
+    // Use provided room ID or generate one
     let finalRoomId = roomId;
     if (!roomId) {
       let attempts = 0;
@@ -142,14 +137,13 @@ export const createRoom = async (req, res) => {
       }
     }
 
-    // Deduct entry amount from user's wallet when creating room
     const session = await mongoose.startSession();
-
     let room;
+
     try {
       session.startTransaction();
 
-      // Create transaction to deduct entry fee
+      // Deduct entry fee
       await Transaction.createWithBalanceUpdate(
         userId,
         'game_loss',
@@ -163,12 +157,12 @@ export const createRoom = async (req, res) => {
         }
       );
 
-      // Create room
+      // Create the room with exactly 2 maxPlayers
       room = new GameRoom({
         roomId: finalRoomId,
         gameType,
         amount,
-        maxPlayers,
+        maxPlayers, // Always 2
         createdBy: userId,
         players: [{
           userId,
@@ -179,7 +173,6 @@ export const createRoom = async (req, res) => {
 
       await room.save({ session });
       await session.commitTransaction();
-
     } catch (error) {
       await session.abortTransaction();
       throw error;
@@ -187,7 +180,7 @@ export const createRoom = async (req, res) => {
       session.endSession();
     }
 
-    // Populate room data
+    // Populate
     await room.populate([
       { path: 'players.userId', select: 'name' },
       { path: 'createdBy', select: 'name' }
@@ -227,6 +220,164 @@ export const createRoom = async (req, res) => {
     });
   }
 };
+
+// export const createRoom = async (req, res) => {
+//   try {
+//     const userId = req.user._id;
+//     const { gameType = 'Ludo', amount, maxPlayers = 2, roomId } = req.body;
+
+//     // Validate input
+//     if (!amount || amount <= 0) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Amount must be greater than 0'
+//       });
+//     }
+
+//     if (amount < 10 || amount > 10000) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Amount must be between ₹10 and ₹10,000'
+//       });
+//     }
+
+//     // Check if room ID already exists
+//     if (roomId) {
+//       const existingRoom = await GameRoom.findOne({ roomId });
+//       if (existingRoom) {
+//         return res.status(400).json({
+//           success: false,
+//           message: 'Room ID already exists. Please choose a different ID.'
+//         });
+//       }
+//     }
+
+//     if (maxPlayers < 2 || maxPlayers > 4) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Players must be between 2 and 4'
+//       });
+//     }
+
+//     // Check user balance
+//     const user = await User.findById(userId);
+//     if (!user) {
+//       return res.status(404).json({
+//         success: false,
+//         message: 'User not found'
+//       });
+//     }
+
+//     if (user.balance < amount) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Insufficient balance to create room'
+//       });
+//     }
+
+//     // Use provided room ID or generate unique room ID
+//     let finalRoomId = roomId;
+//     if (!roomId) {
+//       let attempts = 0;
+//       do {
+//         const randomNum = Math.floor(100000 + Math.random() * 900000);
+//         finalRoomId = `LK${randomNum}`;
+//         attempts++;
+//       } while (await GameRoom.findOne({ roomId: finalRoomId }) && attempts < 10);
+
+//       if (attempts >= 10) {
+//         return res.status(500).json({
+//           success: false,
+//           message: 'Failed to generate unique room ID'
+//         });
+//       }
+//     }
+
+//     // Deduct entry amount from user's wallet when creating room
+//     const session = await mongoose.startSession();
+
+//     let room;
+//     try {
+//       session.startTransaction();
+
+//       // Create transaction to deduct entry fee
+//       await Transaction.createWithBalanceUpdate(
+//         userId,
+//         'game_loss',
+//         amount,
+//         `Game Entry - Room ${finalRoomId}`,
+//         {
+//           metadata: {
+//             roomCode: finalRoomId,
+//             action: 'room_creation'
+//           }
+//         }
+//       );
+
+//       // Create room
+//       room = new GameRoom({
+//         roomId: finalRoomId,
+//         gameType,
+//         amount,
+//         maxPlayers,
+//         createdBy: userId,
+//         players: [{
+//           userId,
+//           name: user.name,
+//           joinedAt: new Date()
+//         }]
+//       });
+
+//       await room.save({ session });
+//       await session.commitTransaction();
+
+//     } catch (error) {
+//       await session.abortTransaction();
+//       throw error;
+//     } finally {
+//       session.endSession();
+//     }
+
+//     // Populate room data
+//     await room.populate([
+//       { path: 'players.userId', select: 'name' },
+//       { path: 'createdBy', select: 'name' }
+//     ]);
+
+//     // Clear caches
+//     cacheUtils.clearRoomsCache();
+//     cache.del(cacheUtils.balanceKey(userId));
+//     cacheUtils.clearUserCache(userId);
+
+//     res.status(201).json({
+//       success: true,
+//       message: 'Room created successfully',
+//       data: {
+//         room: {
+//           _id: room._id,
+//           roomId: room.roomId,
+//           gameType: room.gameType,
+//           amount: room.amount,
+//           maxPlayers: room.maxPlayers,
+//           currentPlayers: room.currentPlayers,
+//           players: room.players,
+//           status: room.status,
+//           createdBy: room.createdBy,
+//           createdAt: room.createdAt,
+//           isCreator: true,
+//           isJoined: true
+//         }
+//       }
+//     });
+
+//   } catch (error) {
+//     console.error('Create room error:', error);
+//     res.status(500).json({
+//       success: false,
+//       message: error.message || 'Failed to create room'
+//     });
+//   }
+// };
 
 export const joinRoom = async (req, res) => {
   try {
